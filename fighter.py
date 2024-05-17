@@ -1,4 +1,3 @@
-#fighter.py
 import pygame
 import socket
 
