@@ -1,4 +1,3 @@
-#server.py
 import socket
 import threading
 from encryption import *
@@ -63,6 +62,10 @@ def handle_request(client: Client, data: str) -> bool:
     if data_fields[0] == 'EXIT':
         print('Client asked for disconnection')
         return True
+    elif data_fields[0] == 'BTL':
+        print('Client asked to return to login')
+        connected_users -= 1
+        users.update_one({'username': client.username}, {'$set': {'online': "False"}})
     elif data_fields[0] == 'STATUS':
         for other_client in clients:
             if other_client != client and other_client.status == 'IN GAME':
@@ -73,6 +76,7 @@ def handle_request(client: Client, data: str) -> bool:
             client.online = True
             send_with_size(client, 'CORRECT')
             client.set_username(data_fields[1])
+            connected_users += 1
         else:
             send_with_size(client, 'EXISTS')
     elif data_fields[0] == 'LOGIN':
