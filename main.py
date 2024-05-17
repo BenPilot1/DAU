@@ -1,4 +1,3 @@
-#main.py
 import pygame
 from pygame import mixer
 from fighter import Fighter
@@ -75,7 +74,7 @@ BLUE_ANIMATION_STEPS = [1, 1, 1, 1]
 # define font
 count_font = pygame.font.Font("assets/fonts/turok.ttf", 80)
 score_font = pygame.font.Font("assets/fonts/turok.ttf", 30)
-login_font = pygame.font.Font("assets/fonts/Impostograph-Regular.ttf", 80)
+login_font = pygame.font.Font("assets/fonts/amongus vector.ttf", 80)
 
 # class
 class Client:
@@ -161,188 +160,206 @@ def gamestart(client: Client, round_over, intro_count, last_count_update, round_
     taken = False
     exists = False
     usernames = []
+    current_screen = 'LOGIN'
     while run:
-        if wrong:
-            draw_wrong()
-        elif taken:
-            draw_taken()
-        elif exists:
-            draw_exists()
-        else:
-            draw_login()
-        draw_text(username, login_font, RED, 216, 220)
-        draw_text(password, login_font, RED, 216, 420)
-        pygame.display.update()
-        data = client.recv_by_size()
-        if data == 'Time Out':
-            pass
-        elif data == '':
-            run = False
-            break
-        else:
-            if data == 'CORRECT':
-                usernames.append(username)
-                break
-            if data == 'TAKEN':
-                taken = True
-                username = ''
-                password = ''
-            if data == 'EXISTS':
-                exists = True
-                username = ''
-                password = ''
-            if data == 'WRONG':
-                wrong = True
-                username = ''
-                password = ''
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                client.send_with_size('EXIT')
-                run = False
-                break
-            elif event.type == pygame.KEYDOWN:
-                print("1")
-                if event.key == pygame.K_BACKSPACE:
-                    if un and len(username) > 0:
-                        username = username[:-1]
-                    elif pw and len(password) > 0:
-                        password = password[:-1]
-                elif event.unicode.isalpha():
-                    if un:
-                        username += event.unicode
-                        if len(username) > 25:
-                            username = username[:-1]
-                    elif pw:
-                        password += event.unicode
-                        if len(password) > 25:
-                            password = password[:-1]
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                exists = False
-                taken = False
-                wrong = False
-                un = False
-                pw = False
-                x, y = pygame.mouse.get_pos()
-                if 216 <= x <= 764:
-                    if 181 <= y <= 288:
-                        un = True
-                        pw = False
-                    elif 380 <= y <= 487:
-                        un = False
-                        pw = True
-                if 548 <= x <= 705 and 509 <= y <= 579:
-                    client.send_with_size(f'LOGIN~{username}~{password}')
-                if 248 <= x <= 441 and 508 <= y <= 579:
-                    client.send_with_size(f'SIGNUP~{username}~{password}')
-
-    while run:
-        score = [0, 0]
-        draw_wi()
-        draw_text("Waiting For Player...", count_font, RED, SCREEN_WIDTH / 6, SCREEN_HEIGHT / 3)
-        pygame.display.update()
-        while run:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    client.send_with_size('EXIT')
-                    run = False
-                    break
+        while current_screen == 'LOGIN':
+            if wrong:
+                draw_wrong()
+            elif taken:
+                draw_taken()
+            elif exists:
+                draw_exists()
+            else:
+                draw_login()
+            draw_text(username, login_font, RED, 216, 190)
+            draw_text(password, login_font, RED, 216, 390)
+            pygame.display.update()
             data = client.recv_by_size()
             if data == 'Time Out':
-                continue
+                pass
             elif data == '':
                 run = False
                 break
             else:
-                data_fields = data.split('~')
-            if data_fields[0] == 'START':
-                if data_fields[1] == '1':
-                    player = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
-                    enemy = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
+                if data == 'CORRECT':
+                    usernames.append(username)
+                    current_screen = 'WAIT'
                     break
-                elif data_fields[1] == '2':
-                    player = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
-                    enemy = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
-                    break
-                else:
-                    print('Error problem with one of the data fields')
-            else:
-                print('Did not expected for that specific type of message')
-
-
-        # game loop
-        while run:
-            clock.tick(FPS)
-
-            draw_bg()
-
-            if player.player_num == 1:
-                draw_health_bar(player.health, 20, 20)
-                draw_health_bar(enemy.health, 580, 20)
-                draw_text("P1: " + str(score[0]), score_font, RED, 20, 60)
-                draw_text("P2: " + str(score[1]), score_font, RED, 580, 60)
-            else:
-                draw_health_bar(enemy.health, 20, 20)
-                draw_health_bar(player.health, 580, 20)
-                draw_text("P1: " + str(score[0]), score_font, RED, 20, 60)
-                draw_text("P2: " + str(score[1]), score_font, RED, 580, 60)
-
-
-            data = client.recv_by_size()
-            data_fields = data.split('~')
-            if data_fields[0] == 'WAIT':
-                break
-            elif data_fields[0] == 'ENEMY':
-                enemy.move_enemy(SCREEN_WIDTH, SCREEN_HEIGHT, player, round_over, data_fields[1:])
-            if intro_count <= 0:
-                status = player.move_player(SCREEN_WIDTH, SCREEN_HEIGHT, enemy, round_over)
-                client.send_with_size(f'STATUS~{status}')
-            else:
-                if player.player_num == 1:
-                    draw_text(player_1_text, count_font, RED, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4)
-                else:
-                    draw_text(player_2_text, count_font, BLUE, (SCREEN_WIDTH / 3) - 10, SCREEN_HEIGHT / 4)
-                draw_text(str(intro_count), count_font, RED, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 3)
-                if (pygame.time.get_ticks() - last_count_update) >= 1000:
-                    intro_count -= 1
-                    last_count_update = pygame.time.get_ticks()
-
-            player.update()
-            enemy.update()
-
-            player.draw(screen)
-            enemy.draw(screen)
-
-            if not round_over:
-                if not player.alive:
-                    score[enemy.player_num - 1] += 1
-                    round_over = True
-                    round_over_time = pygame.time.get_ticks()
-                elif not enemy.alive:
-                    score[player.player_num - 1] += 1
-                    round_over = True
-                    round_over_time = pygame.time.get_ticks()
-            else:
-                if not enemy.alive:
-                    draw_text("you win", count_font, player.color, 360, 150)
-                elif not player.alive:
-                    draw_text("you lose", count_font, enemy.color, 360, 150)
-                if pygame.time.get_ticks() - round_over_time > ROUND_OVER_COOLDOWN:
-                    round_over = False
-                    intro_count = 3
-                    if player.player_num == 1:
-                        player = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
-                        enemy = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
-                    elif player.player_num == 2:
-                        player = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
-                        enemy = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
-
+                if data == 'TAKEN':
+                    taken = True
+                    username = ''
+                    password = ''
+                if data == 'EXISTS':
+                    exists = True
+                    username = ''
+                    password = ''
+                if data == 'WRONG':
+                    wrong = True
+                    username = ''
+                    password = ''
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     client.send_with_size('EXIT')
+                    current_screen = 'NONE'
                     run = False
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    print("1")
+                    if event.key == pygame.K_BACKSPACE:
+                        if un and len(username) > 0:
+                            username = username[:-1]
+                        elif pw and len(password) > 0:
+                            password = password[:-1]
+                    elif event.unicode.isalpha() or event.unicode.isnumeric():
+                        if un:
+                            username += event.unicode
+                            if len(username) > 22:
+                                username = username[:-1]
+                        elif pw:
+                            password += event.unicode
+                            if len(password) > 22:
+                                password = password[:-1]
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    exists = False
+                    taken = False
+                    wrong = False
+                    un = False
+                    pw = False
+                    x, y = pygame.mouse.get_pos()
+                    if 216 <= x <= 764:
+                        if 181 <= y <= 288:
+                            un = True
+                            pw = False
+                        elif 380 <= y <= 487:
+                            un = False
+                            pw = True
+                    if 548 <= x <= 705 and 509 <= y <= 579:
+                        client.send_with_size(f'LOGIN~{username}~{password}')
+                    if 248 <= x <= 441 and 508 <= y <= 579:
+                        client.send_with_size(f'SIGNUP~{username}~{password}')
 
-
+        while current_screen == 'WAIT':
+            score = [0, 0]
+            draw_wi()
+            draw_text("Waiting For Player...", count_font, RED, SCREEN_WIDTH / 6, SCREEN_HEIGHT / 3)
             pygame.display.update()
+            while run:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        client.send_with_size('EXIT')
+                        current_screen = 'NONE'
+                        run = False
+                        break
+                data = client.recv_by_size()
+                if data == 'Time Out':
+                    continue
+                elif data == '':
+                    run = False
+                    break
+                else:
+                    data_fields = data.split('~')
+                if data_fields[0] == 'START':
+                    if data_fields[1] == '1':
+                        player = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
+                        enemy = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
+                        current_screen = 'GAME'
+                        break
+                    elif data_fields[1] == '2':
+                        player = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
+                        enemy = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
+                        current_screen = 'GAME'
+                        break
+                    else:
+                        print('Error problem with one of the data fields')
+                else:
+                    print('Did not expected for that specific type of message')
+
+
+            # game loop
+            while current_screen == 'GAME':
+                clock.tick(FPS)
+
+                draw_bg()
+
+                if player.player_num == 1:
+                    draw_health_bar(player.health, 20, 20)
+                    draw_health_bar(enemy.health, 580, 20)
+                    draw_text("P1: " + str(score[0]), score_font, RED, 20, 60)
+                    draw_text("P2: " + str(score[1]), score_font, RED, 580, 60)
+                else:
+                    draw_health_bar(enemy.health, 20, 20)
+                    draw_health_bar(player.health, 580, 20)
+                    draw_text("P1: " + str(score[0]), score_font, RED, 20, 60)
+                    draw_text("P2: " + str(score[1]), score_font, RED, 580, 60)
+
+
+                data = client.recv_by_size()
+                data_fields = data.split('~')
+                if data_fields[0] == 'WAIT':
+                    current_screen = 'WAIT'
+                    break
+                elif data_fields[0] == 'ENEMY':
+                    enemy.move_enemy(SCREEN_WIDTH, SCREEN_HEIGHT, player, round_over, data_fields[1:])
+                if intro_count <= 0:
+                    status = player.move_player(SCREEN_WIDTH, SCREEN_HEIGHT, enemy, round_over)
+                    client.send_with_size(f'STATUS~{status}')
+                else:
+                    if player.player_num == 1:
+                        draw_text(player_1_text, count_font, RED, SCREEN_WIDTH / 3, SCREEN_HEIGHT / 4)
+                    else:
+                        draw_text(player_2_text, count_font, BLUE, (SCREEN_WIDTH / 3) - 10, SCREEN_HEIGHT / 4)
+                    draw_text(str(intro_count), count_font, RED, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 3)
+                    if (pygame.time.get_ticks() - last_count_update) >= 1000:
+                        intro_count -= 1
+                        last_count_update = pygame.time.get_ticks()
+
+                player.update()
+                enemy.update()
+
+                player.draw(screen)
+                enemy.draw(screen)
+
+                if not round_over:
+                    if not player.alive:
+                        score[enemy.player_num - 1] += 1
+                        round_over = True
+                        round_over_time = pygame.time.get_ticks()
+                    elif not enemy.alive:
+                        score[player.player_num - 1] += 1
+                        round_over = True
+                        round_over_time = pygame.time.get_ticks()
+                else:
+                    if not enemy.alive:
+                        draw_text("you win", count_font, player.color, 360, 150)
+                    elif not player.alive:
+                        draw_text("you lose", count_font, enemy.color, 360, 150)
+                    if pygame.time.get_ticks() - round_over_time > ROUND_OVER_COOLDOWN:
+                        round_over = False
+                        intro_count = 3
+                        if player.player_num == 1:
+                            player = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
+                            enemy = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
+                        elif player.player_num == 2:
+                            player = Fighter(2, 700, 310, True, BLUE_DATA, blue_sheet, BLUE_ANIMATION_STEPS, BLUE)
+                            enemy = Fighter(1, 200, 310, False, RED_DATA, red_sheet, RED_ANIMATION_STEPS, RED)
+
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        client.send_with_size('EXIT')
+                        run = False
+                        current_screen = 'NONE'
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            client.send_with_size('BTL')
+                            current_screen = 'LOGIN'
+                    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                        x, y = pygame.mouse.get_pos()
+                        if 461 <= x <= 531 and 16 <= y <= 71:
+                            client.send_with_size('BTL')
+                            current_screen = 'LOGIN'
+
+
+                pygame.display.update()
 
 
 
